@@ -1,0 +1,8 @@
+[l2sw]
+172.20.254.247
+#172.21.94.70
+
+[l2sw:vars]
+ansible_user=isd_nw
+ansible_password=fantasti9
+cisco_enable_secret=fantasti9

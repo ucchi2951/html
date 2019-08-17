@@ -1,0 +1,17 @@
+<html>
+    <head>
+        <script lang="javascript" src="jquery-3.3.1.js"></script>
+        <script lang="javascript">
+            function move(){
+                $("#mydiv").animate({
+                    left: "100px"
+                })
+            }
+        </script>
+    </head>
+
+    <body>
+        <div id="mydiv" style="position:absolute; top:50px;left: 50px;width: 100px;height: 100px;border: solid 1px">要素の列</div>
+        <input type="button" onclick="move();" value="移動">
+    </body>
+</html>

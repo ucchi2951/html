@@ -1,0 +1,30 @@
+---
+- hosts: l2sw
+  gather_facts: no
+  connection: local
+
+  vars:
+    cli:
+      username: "{{ ansible_user }}"
+      password: "{{ ansible_password }}"
+      authorize: yes
+      auth_pass: "{{ cisco_enable_secret }}"
+
+  tasks:
+    - name: create vlan
+      ios_vlan:
+        vlan_id: 120
+        name: test_vlan
+        state: present
+        provider: "{{ cli }}"
+
+    - name: show
+      ios_command:
+        commands:
+          - show run
+        provider: "{{ cli }}"
+      register: result
+
+    - name: debug
+      debug:
+        msg: "{{ result.stdout_lines[0] }}"

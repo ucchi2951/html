@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>あみだくじ</title>
+<script>
+var canvas,context;     //キャンバス
+var num = 15;           //縦線の本数
+var cross = new Array();    //横線
+var wins = new Array();     //あたり
+var s,x,y,dx,dy;            //開始位置、移動円の座標、移動方向
+var timer = null;
+
+function init(){
+    //キャンバスの取得
+    canvas = document.getElementById("amida");
+    context = canvas.getContext("2d");
+    //あみだくじの作成
+    setAmida();
+}
+
+function setAmida(){
+    //移動停止、キャンバスのクリア
+    clearInterval(timer);
+    timer = null;
+    context.clearRect(0,0,canvas.width,canvas.height);
+    //あみだくじの作成
+    num = document.getElementById("num").value;
+    var winNum = document.getElementById("winNum").value;
+    wins = [];
+    document.getElementById("buttons").innerHTML = "";
+    for (var i=0;i<num;i++){
+        //ボタンの作成
+        var button = document.createElement("button");
+        button.id = "button_" + i;
+        button.innerText = i;
+        button.onclick = startMove;
+        document.getElementById("buttons").appendChild(button);
+        //あたり位置の初期化
+        wins[i] = 0;
+        if(i < winNum) wins[i] = 1;
+        //縦線の描画
+        var x1 = i * 50 +50,x2 = (i + 1) * 50 +50;
+        drawLine(x1,0,x1,500);
+        //横線の描画
+        if ( i < num-1){
+            cross[i] = new Array();
+            var cy,cnt = 0;
+            for(var j = 0;j<8;j++){
+                cross[i][j] = Math.floor(Math.random()*2);
+                cnt += cross[i][j];
+                if(cross[i][j]==1){
+                    cy = j * 50 + 50;
+                    if(i%2 == 1)cy = j * 50 + 25;
+                    drawLine(x1,cy,x2,cy);
+                }
+            }
+        //少なくとも１本は横線を入れる
+            if(cnt == 0){
+                var r = Math.floor(Math.random()*8);
+                cross[i][r] = 1;
+                cy = r* 50 + 50;
+                if(i%2 == 1) cy = r * 50 + 25;
+                drawLine(x1,cy,x2,cy);
+            }
+        }
+        //結果欄の描画
+        context.strokeRect(x1 - 20, 500,40,40);
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.font = "20px sans-serif";
+        context.fillStyle = "#000000";
+        context.fillText("?",x1,520);
+    }
+    //あたり位置をシャッフル
+    for(var k= wins.length-1;k > 0;k--){
+        var l = Math.floor(Math.random()*k);
+        var temp = wins[k];
+        wins[k] = wins[l];
+        wins[l] = temp;
+    }
+}
+
+function drawLine(x1,y1,x2,y2){
+    //直線の描画
+    context.strokeStyle = "#000000";
+    context.beginPath();
+    context.moveTo(x1,y1);
+    context.lineTo(x2,y2);
+    context.stroke();
+}
+
+function startMove(event){
+    //開始位置、移動方向をセット
+    s = event.target.id.split("_")[1];
+    x = s * 50 + 50;
+    y = 0;
+    dx = 0;
+    dy = 1;
+    //移動開始
+    if(timer == null) timer = setInterval(move,2)
+}
+
+function move(){
+    //移動
+    x += dx;
+    y += dy;
+    //移動方向の変更
+    var i = (x-50)/50;
+    if(dx == 0){
+        var j1 = (y-50)/50,j2 = (y-25)/50;
+        if(i%2 == 1){
+            j1 = (y-25)/50;
+            j2 = (y-50)/50;
+        }
+        if((i < num-1)&&(j1 ==Math.floor(j1))
+        &&(cross[i][j1] == 1)){
+            //右へ
+            dx = 1;
+            dy = 0;
+        } else if ((i > 0)&&(j2 == Math.floor(j2))
+        &&(cross[i-1][j2] == 1)){
+            //左へ
+            dx = -1;
+            dy = 0;
+        }
+    }else{
+        if(i == Math.floor(i)){
+            //下へ
+            dx = 0;
+            dy = 1;
+        }
+    }
+    //移動円の描画
+    context.strokeStyle = "hsl(" + Math.floor(360/num*s) + ",100%,25%";
+    context.fillStyle = "hsl(" + Math.floor(360/num*s) + ",100%,80%";
+    context.beginPath();
+    context.arc(x,y,3,0,Math.PI*2);
+    context.stroke();
+    context.fill();
+    //移動停止
+    if(y > 500){
+        clearInterval(timer);
+        timer = null;
+        //結果の表示
+        var color = "#0000FA",result = "スカ";
+        if(wins[i] == 1){
+            color = "#FF0000";
+            result = "当り";
+            document.getElementById("button_"+s).className = "red";
+        }
+        context.fillStyle = color;
+        context.fillRect(x - 20,500,40,40);
+        context.fillStyle = "#FFFFFF";
+        context.fillText(result,x,520);
+    }
+}
+</script>
+<style>
+input[type="number"]{width: 50px;}
+#buttons {margin-left: 25px;}
+button{
+    width:40px;
+    height: 40px;
+    margin:5px;
+}
+.red{
+    color: #FFFFFF;
+    background-color:#FF0000;
+}
+</style>
+</head>
+<body onload="init()">
+<p>あみだくじ</p>
+本数：<input type = "number" id= "num" value= "10" min="2" max="15">
+あたりの数:<input type="number" id="winNum" value="1" min="1">
+<input type="button" value="阿弥陀籤を作成" onclick="setAmida()">
+<hr>
+<div id="buttons"></div>
+<canvas id= "amida" width="800" height="550"></canvas>
+</body>
+</html>

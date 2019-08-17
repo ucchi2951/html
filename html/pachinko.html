@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>スロットマシン</title>
+<script>
+var canvas,context;                         //キャンバス
+var speed = [0,0,0],friction = [0,0,0];     //回転速度、摩擦
+var result = [0,0,0],medal = 50,bet = 0;    //結果、メダル、ベット枚数
+var timer;
+//絵柄
+var pattern = new Array();
+var code = ["0x1f514","0x1f352","0x1f349","0x1f347","0x1f34e","0x1f34d","0x1f34c"];
+
+//絵柄クラス
+function Pattern(slotNo, index,pos){
+    this.slotNo = slotNo;           //スロット番号
+    this.index = index;             //絵柄のインデックス
+    this.pos = pos;                 //位置
+    this.update();
+}
+
+Pattern.prototype.update = function(){
+    //絵柄の回転(下方向へ移動)
+    this.pos += speed[this.slotNo];
+    if(this.pos > (code.length-1)*100) this.pos -= code.length * 100;
+    //絵柄の描画
+    if ((this.pos > -100) &&(this.pos < 200)){
+        var text = String.fromCodePoint(code[this.index]);
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.font = "60px sans-serif";
+        context.fillText(text,this.slotNo*200+100,this.pos+50);
+        //結果をセット
+        if((this.pos > 40) && (this.pos < 60)){
+            result[this.slotNo] = this.index;
+        }
+    }
+}
+
+function init(){
+    //キャンバスの取得
+    canvas = document.getElementById("slot");
+    context = canvas.getContext("2d");
+    //スロットに絵柄をセット
+    for (var i=0;i<3;i++){
+        pattern[i] = new Array();
+        for(var j=0;j<code.length;j++){
+            pattern[i].push(new Pattern(i,j,150-j*100));
+        }
+        context.strokeRect(i*200,0,200,200);
+    }
+    //START,BETボタンの有効化、STOPボタンの無効化
+    disableButtons(false,true);
+}
+
+function startSlot(){
+    //スロット回転開始
+    speed = [20,20,20];
+    friction = [0,0,0];
+    document.getElementById("return").innerText = bet + " ✕ ? = ?";
+    timer = setInterval(update,20);
+    // START,BETボタンの無効化、STOｐボタンの有効化
+    disableButtons(true,false);
+}
+
+function betMedal(){
+    //ベット
+    if (medal > 0){
+        bet++;
+        medal--;
+        document.getElementById("medal").innerText = medal;
+        documment.getElementById("bet").innerText = bet;
+    }
+}
+
+function stopSlot(n){
+    //回転停止
+    friction[n] = 0.2;
+    document.getElementById("stop_"+n).disabled = true;
+}
+
+function update(){
+    context.clearRect(0,0,canvas.width,canvas.height);
+    //スロット回転
+    for(var i = 0;i<3;i++){
+        speed[i] -= friction[i];
+        if(speed[i] < 1){
+            friction[i] = 0;
+            //停止
+            if(Math.abs(pattern[i][0].pos -50)%100 < 1){
+                speed[i] =0;
+                friction[i] = 0;
+            }
+        }
+        //回転＋描画
+        for(var j = 0;j<code.length;j++){
+            pattern[i][j].update();
+        }
+        context.strokeRect(i*200,0,200,200);
+    }
+    //スロット確定
+    if((speed[0] == [0])&&(speed[1] == 0)&&(speed[2] == 0)){
+        clearInterval(timer);
+        //START,BETボタンの有効化、STOPボタンの無効化
+        disableButtons(false,true);
+        //結果
+        var odds = 0;
+        if((result[0]==result[1])&&(result[0]==result[2])){
+            //3つの絵柄が揃った
+            odds = 10;
+        }else if(((result[0]==1)&&(result[1]==1))
+        ||((result[0] ==1)&&(result[2] == 1))
+        ||((result[1] == 1)&&(result[2] == 1))){
+            //チェリーが2つ
+            odds = 5;
+        }else if((result[0]==1)||(result[1] == 1)||(result[2]==1)){
+            //チェリーが1つ
+            odds = 2;
+        }
+        var text = "x <font color='#FF0000'>" + odds + "</font> = ";
+        document.getElementById("return").innerHTML = bet + text + bet * odds;
+        medal += bet * odds;
+        bet = 0;
+        document.getElementById("medal").innerText =medal;
+        document.getElementById("bet").innerText = bet;
+    }
+}
+
+function disableButtons(start,stop){
+    //START,STOP,BETボタンの有効化・無効化
+    document.getElementById("start").disabled  = start;
+    document.getElementById("betButton").disabled = start;
+    document.getElementById("stop_0").disabled = stop;
+    document.getElementById("stop_1").disabled = stop;
+    document.getElementById("stop_2").disabled = stop;
+}
+</script>
+<style>
+canvas {float:left;}
+input {font-size: 20px;}
+#startButtons input{
+    width: 80px;
+    height: 80px;
+    margin:10px;
+}
+#stopButtons input{
+    width: 190px;
+    height:40px;
+    margin:5px;
+}
+span {
+    color:#0000CC;
+    font-size:20px;
+}
+</style>
+</head>
+<body onload="init()">
+<p>スロット</p>
+Medal: <span id="medal">50</span> Bet: <span id="bet">0</span>
+Return: <span id ="return">0 ✕ ? = ?</span>
+<hr>
+<canvas id="slot" width="600" height="200"></canvas>
+<div id = "startButtons">
+    <input type="button" id="start" value="START" onclick="startSlot()"><br>
+    <input type= "button" id="betButton" value="BET" onclick="betMedal()">
+</div>
+<div id="stopButtons">
+    <input type="button" id="stop_0" value="STOP" onclick="stopSlot(0)">
+    <input type="button" id="stop_1" value="STOP" onclick="stopSlot(1)">
+    <input type="button" id="stop_2" value="STOP" onclick="stopSlot(2)">
+</div>
+</body>
+</html>
